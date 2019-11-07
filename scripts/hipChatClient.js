@@ -54,6 +54,10 @@ function HipChatClient() {
     {
       name: "notify",
       optional: true
+    },
+    {
+      name: "message_type",
+      optional: true
     }
   ];
   this.validInput = true;

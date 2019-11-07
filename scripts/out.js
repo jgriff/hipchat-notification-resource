@@ -15,6 +15,7 @@
 // limitations under the License.
 
 var HipChatClient = require('./hipChatClient'),
+  opinions = require('./opinionatedMessages'),
   tokenReplacer = require('./tokenReplacement'),
   stdin = process.stdin,
   inputChunks = [];
@@ -28,8 +29,10 @@ stdin.on('data', function (chunk) {
 stdin.on('end', function () {
   var inputJSON = inputChunks.join("");
 
-  var parsedData = JSON.parse(inputJSON.toString()),
-    message = parsedData.params.message;
+  var parsedData = JSON.parse(inputJSON.toString());
+  opinions.injectOpinionatedDefaults(parsedData.params);
+  var message = parsedData.params.message;
+
   tokenReplacer.replaceTokens(message, process.argv[2], function (error, newMessage) {
     if (error) {
       console.error(error);
