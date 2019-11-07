@@ -13,6 +13,7 @@
 // limitations under the License.
 
 var request = require('request');
+const https = require('https');
 
 function HipChatClient() {
   this.sourceProperties = [
@@ -26,6 +27,10 @@ function HipChatClient() {
     },
     {
       name: "room_id",
+      optional: true
+    },
+    {
+      name: "skip_ssl_verification",
       optional: true
     }
   ];
@@ -74,6 +79,10 @@ HipChatClient.prototype.sendMessage = function (source, params, done) {
       method: "POST",
       json: hipChatMessage
     };
+
+  if (source.skip_ssl_verification) {
+    requestOptions.agent = new https.Agent({ rejectUnauthorized: false })
+  }
 
   if (params.color) {
     hipChatMessage.color = params.color;

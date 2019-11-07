@@ -25,6 +25,7 @@ resource_types:
 * `hipchat_server_url`: *Required.* https://api.hipchat.com OR https://api.hipchat.com/v2/room/12456 (see room_id below)
 * `token`: *Required.* token to authenticate with HipChat server
 * `room_id`: The room to send notifications to (Required when not specified in the hipchat_server_url)
+* `skip_ssl_verification`:  *Optional.*  Skips ssl verification by setting `rejectUnauthorized: false` in the request `https.Agent`.
 
 #### `out`: Sends message to HipChat room
 
