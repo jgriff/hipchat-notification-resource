@@ -30,7 +30,11 @@ module.exports = {
     var buildTokens = {
       "${BUILD_ID}": process.env.BUILD_ID,
       "${BUILD_NAME}": process.env.BUILD_NAME,
+      "${BUILD_TEAM_ID}": process.env.BUILD_TEAM_ID,
+      "${BUILD_TEAM_NAME}": process.env.BUILD_TEAM_NAME,
+      "${BUILD_JOB_ID}": process.env.BUILD_JOB_ID,
       "${BUILD_JOB_NAME}": process.env.BUILD_JOB_NAME,
+      "${BUILD_PIPELINE_ID}": process.env.BUILD_PIPELINE_ID,
       "${BUILD_PIPELINE_NAME}": process.env.BUILD_PIPELINE_NAME,
       "${ATC_EXTERNAL_URL}": process.env.ATC_EXTERNAL_URL
     };
