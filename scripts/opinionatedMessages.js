@@ -1,90 +1,71 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 module.exports = {
   injectOpinionatedDefaults: function (params) {
     if (!params.message_type) {
       return;
     }
 
-    const defaultFrom = "Concourse CI";
-    var messageTemplatePrefix =
-        " [" + href("${BUILD_TEAM_NAME}", urlToTeam()) + "] " +
-        href("${BUILD_PIPELINE_NAME}", urlToPipeline()) + " / " +
-        href("${BUILD_JOB_NAME} #${BUILD_NAME}", urlToJob()) + " > ";
+    var messageHeaderSimple = headerSimple();
 
     var defaultColor = "yellow";
     var defaultNotify = false;
-    var defaultMessageTemplate = "";
+    var defaultMessage = "";
 
     switch (params.message_type) {
       case "pending":
         defaultColor = "gray";
-        messageTemplatePrefix = img("started") + messageTemplatePrefix;
-        defaultMessageTemplate = "Build Pending";
+        messageHeaderSimple = imgBuildStatus("pending") + messageHeaderSimple;
+        defaultMessage = "Build Pending";
         break;
       case "started":
         defaultColor = "yellow";
-        messageTemplatePrefix = img("started") + messageTemplatePrefix;
-        defaultMessageTemplate = "Build Started";
+        messageHeaderSimple = imgBuildStatus("started") + messageHeaderSimple;
+        defaultMessage = "Build Started";
         break;
       case "succeeded":
         defaultColor = "green";
-        messageTemplatePrefix = img("succeeded") + messageTemplatePrefix;
-        defaultMessageTemplate = "Build Successful";
+        messageHeaderSimple = imgBuildStatus("succeeded") + messageHeaderSimple;
+        defaultMessage = "Build Successful";
         break;
       case "failed":
         defaultColor = "red";
         defaultNotify = true;
-        messageTemplatePrefix = img("failed") + messageTemplatePrefix;
-        defaultMessageTemplate = "Build Failed!";
+        messageHeaderSimple = imgBuildStatus("failed") + messageHeaderSimple;
+        defaultMessage = "Build Failed!";
         break;
       case "aborted":
         defaultColor = "purple";
-        messageTemplatePrefix = img("aborted") + messageTemplatePrefix;
-        defaultMessageTemplate = "Build Aborted";
+        messageHeaderSimple = imgBuildStatus("aborted") + messageHeaderSimple;
+        defaultMessage = "Build Aborted";
         break;
       case "pr_pending":
         defaultColor = "gray";
-        messageTemplatePrefix = img("pending") + messageTemplatePrefix;
-        defaultMessageTemplate = "Pull Request Build Pending";
+        messageHeaderSimple = imgBuildStatus("pending") + messageHeaderSimple;
+        defaultMessage = "Pull Request Build Pending";
         break;
       case "pr_started":
         defaultColor = "yellow";
-        messageTemplatePrefix = img("started") + messageTemplatePrefix;
-        defaultMessageTemplate = "Pull Request Build Started";
+        messageHeaderSimple = imgBuildStatus("started") + messageHeaderSimple;
+        defaultMessage = "Pull Request Build Started";
         break;
       case "pr_succeeded":
         defaultColor = "green";
-        messageTemplatePrefix = img("succeeded") + messageTemplatePrefix;
-        defaultMessageTemplate = "Pull Request Build Successful";
+        messageHeaderSimple = imgBuildStatus("succeeded") + messageHeaderSimple;
+        defaultMessage = "Pull Request Build Successful";
         break;
       case "pr_failed":
         defaultColor = "red";
         defaultNotify = true;
-        messageTemplatePrefix = img("failed") + messageTemplatePrefix;
-        defaultMessageTemplate = "Pull Request Build Failed!";
+        messageHeaderSimple = imgBuildStatus("failed") + messageHeaderSimple;
+        defaultMessage = "Pull Request Build Failed!";
         break;
       case "pr_aborted":
         defaultColor = "purple";
-        messageTemplatePrefix = img("aborted") + messageTemplatePrefix;
-        defaultMessageTemplate = "Pull Request Build Aborted";
+        messageHeaderSimple = imgBuildStatus("aborted") + messageHeaderSimple;
+        defaultMessage = "Pull Request Build Aborted";
         break;
       default:
+        console.error("Unsupported value for 'message_type':", params.message_type);
         return;
-    }
-
-    if (!params.from) {
-      params.from = defaultFrom;
     }
 
     if (!params.color) {
@@ -95,25 +76,51 @@ module.exports = {
       params.notify = defaultNotify;
     }
 
-    if (!params.message) {
-      params.message = {
-        template: messageTemplatePrefix + defaultMessageTemplate
-      };
-    } else if (typeof params.message === "string") {
-      params.message = {
-        template: messageTemplatePrefix + params.message
-      };
-    } else if (!params.message.template) {
-      params.message = {
-        template: messageTemplatePrefix + defaultMessageTemplate
-      };
-    } else if (typeof params.message.template === "string") {
-      params.message.template = messageTemplatePrefix + params.message.template;
+    if (params.message && typeof params.message === "string") {
+      // if the user supplied their own message, use it
+      params.message = messageHeaderSimple + params.message + newline() + detailsSimple();
     } else {
-      params.message.template = messageTemplatePrefix + defaultMessageTemplate;
+      // otherwise, use our default message
+      params.message = messageHeaderSimple + defaultMessage + newline() + detailsSimple();;
     }
   }
 };
+
+function headerSimple() {
+  return  imgConcoursePublic("baseline-people-24px.svg", 16) + href(bold("${BUILD_TEAM_NAME}"), urlToTeam()) + space(2) +
+          imgConcoursePublic("ic-breadcrumb-pipeline.svg", 16) + href(bold("${BUILD_PIPELINE_NAME}"), urlToPipeline()) + space(2) +
+          imgConcoursePublic("ic-breadcrumb-job.svg", 16) + href(bold("${BUILD_JOB_NAME} #${BUILD_NAME}"), urlToJob()) +
+          imgConcoursePublic("baseline-keyboard-arrow-right-24px.svg", 16);
+}
+
+function detailsSimple() {
+  return emphasis("To watch this build in your terminal using") + space(1) + code(bold("fly")) + space(2) +
+         href(imgConcoursePublic("apple-logo-grey-ic.svg", 16), urlToFlyDownloadMac()) +
+         href(imgConcoursePublic("windows-logo-grey-ic.svg", 16), urlToFlyDownloadWindows()) +
+         href(imgConcoursePublic("linxus-logo-grey-ic.svg", 16), urlToFlyDownloadLinux()) + newline() +
+         imgConcoursePublic("ic-terminal.svg", 16) + space(1) + code("fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME} --insecure") + newline() +
+         imgConcoursePublic("ic-terminal.svg", 16) + space(1) + code("fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}");
+}
+
+function newline() {
+  return '<br>';
+}
+
+function space(count) {
+  return '&nbsp;'.repeat(count);
+}
+
+function bold(text) {
+  return "<b>" + text + "</b>";
+}
+
+function emphasis(text) {
+  return "<i>" + text + "</i>";
+}
+
+function code(text) {
+  return "<code>" + text + "</code>";
+}
 
 function href(text, url) {
   return '<a href="' + url + '">' + text + '</a>';
@@ -131,6 +138,26 @@ function urlToJob() {
   return urlToPipeline() + '/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}';
 }
 
-function img(type) {
-    return '<img src="${ATC_EXTERNAL_URL}/public/images/favicon-' + type + '.png" alt="favicon-' + type + '.png" width="16" height="16">';
+function urlToFlyDownloadMac() {
+  return urlToFlyDownload('amd64', 'darwin');
+}
+
+function urlToFlyDownloadWindows() {
+  return urlToFlyDownload('amd64', 'windows');
+}
+
+function urlToFlyDownloadLinux() {
+  return urlToFlyDownload('amd64', 'linux');
+}
+
+function urlToFlyDownload(arch, platform) {
+  return '${ATC_EXTERNAL_URL}/api/v1/cli?arch=' + arch + '&platform=' + platform;
+}
+
+function imgBuildStatus(status) {
+  return imgConcoursePublic("favicon-" + status + ".png", 24);
+}
+
+function imgConcoursePublic(name, size) {
+  return '<img src="${ATC_EXTERNAL_URL}/public/images/' + name + '" alt="" width="' + size + '" height="' + size + '">';
 }

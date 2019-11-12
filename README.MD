@@ -44,48 +44,68 @@ jobs:
 
 * `hipchat_server_url`: *Required.* https://api.hipchat.com OR https://api.hipchat.com/v2/room/12456 (see room_id below)
 * `token`: *Required.* token to authenticate with HipChat server
-* `room_id`: The room to send notifications to (Required when not specified in the hipchat_server_url)
-* `skip_ssl_verification`:  *Optional.*  Skips ssl verification by setting `rejectUnauthorized: false` in the request `https.Agent`.
+* `room_id`: The room to send notifications to (*Required* when not specified in the `hipchat_server_url`)
+* `skip_ssl_verification`:  *Optional.*  Skips ssl verification (useful if your HipChat is running under a self-signed certificate)
 
 ## Parameters
 
-* `from`: *Required.* Name of the system sending the notification
-* `message`: *Required.* (string) Text to send to the HipChat room
-* `message`: *Required.* (object)
-  + `template` *Required.* Template string with values to replace from params in the format ${param_key}
-  + `params` *Optional.* Key and values to use to replace in template. Can start with file:// to get a value from a file. By default includes [build metadata variables](https://concourse-ci.org/implementing-resource-types.html#resource-metadata).
-* `color`: *Optional.* One of `"yellow"`, `"red"`, `"green"`, `"purple"`, `"gray"`, or `"random"` (default: `"yellow"`).
-* `message_format`: *Optional.* Message format, either `"html"` or `"text"` (default: `"html"`)
-* `notify`: *Optional.* If the message should trigger a notification to people in the room (`true` or `false`, default `false`).
-* `message_type`: *Optional.* Provides opinionated defaults for the above parameters for simplified usage (see below).
+### Required
+* `message`: *Required.* (string) Text to send to the HipChat room.  Can contain tokens in the format `${key}` that will be replaced at runtime by values defined in the `tokens` parameter.
 
-#### Opinionated Parameters
+### Optional
+* `message_format`: *Optional.* Message format, either `"html"` or `"text"` (default is `"html"`).
+* `tokens` *Optional.* (list) Custom keys/values to replace in `message`. Can start with `file://` to get a value from a file. By default, automatically includes all [build metadata variables](https://concourse-ci.org/implementing-resource-types.html#resource-metadata) (such as `{ATC_EXTERNAL_URL}`).
+* `from`: *Optional.* Name of the system sending the notification.  Note that HipChat will render the message as being sent by the user the auth `token` (from the **source configuration**) was created under.  So if that user is your "Concourse" user, this likely isn't needed.
+* `color`: *Optional.* One of `"yellow"`, `"red"`, `"green"`, `"purple"`, `"gray"`, or `"random"` (default: `"yellow"`).
+* `notify`: *Optional.* If the message should trigger a notification to people in the room, either `true` or `false` (default is `false`).
+
+
+### Opinionated Parameters
+
 For simpler configurations, this resource can provide an opinionated message scheme by simply setting the `message_type` parameter.
+
+* `message_type`: *Optional.* Opinionated message type, providing default configuration for other parameters.
 
 Choose from one of the following values for `message_type` to get the associated defaults in the table below:
 
-| `message_type`   | default `from`   | default `color` | default `notify` | default `message.template`      |
-| ---------------- | ---------------- | --------------- | ---------------- | ------------------------------- |
-| `"pending"`      | `"Concourse CI"` | `"gray"`        | `false`          | "Build Pending"                 |
-| `"started"`      | `"Concourse CI"` | `"yellow"`      | `false`          | "Build Started"                 |
-| `"succeeded"`    | `"Concourse CI"` | `"green"`       | `false`          | "Build Successful"              |
-| `"failed"`       | `"Concourse CI"` | `"red"`         | `true`           | "Build Failed!"                 |
-| `"aborted"`      | `"Concourse CI"` | `"purple"`      | `false`          | "Build Aborted"                 |
-| `"pr_pending"`   | `"Concourse CI"` | `"gray"`        | `false`          | "Pull Request Build Pending"    |
-| `"pr_started"`   | `"Concourse CI"` | `"yellow"`      | `false`          | "Pull Request Build Started"    |
-| `"pr_succeeded"` | `"Concourse CI"` | `"green"`       | `false`          | "Pull Request Build Successful" |
-| `"pr_failed"`    | `"Concourse CI"` | `"red"`         | `true`           | "Pull Request Build Failed!"    |
-| `"pr_aborted"`   | `"Concourse CI"` | `"purple"`      | `false`          | "Pull Request Build Aborted"    |
+| `message_type`   | default `color` | default `notify` | default `message`               |
+| ---------------- | --------------- | ---------------- | ------------------------------- |
+| `"pending"`      | `"gray"`        | `false`          | "Build Pending"                 |
+| `"started"`      | `"yellow"`      | `false`          | "Build Started"                 |
+| `"succeeded"`    | `"green"`       | `false`          | "Build Successful"              |
+| `"failed"`       | `"red"`         | `true`           | "Build Failed!"                 |
+| `"aborted"`      | `"purple"`      | `false`          | "Build Aborted"                 |
+| `"pr_pending"`   | `"gray"`        | `false`          | "Pull Request Build Pending"    |
+| `"pr_started"`   | `"yellow"`      | `false`          | "Pull Request Build Started"    |
+| `"pr_succeeded"` | `"green"`       | `false`          | "Pull Request Build Successful" |
+| `"pr_failed"`    | `"red"`         | `true`           | "Pull Request Build Failed!"    |
+| `"pr_aborted"`   | `"purple"`      | `false`          | "Pull Request Build Aborted"    |
 
-The `message.template` is prepended with
+#### Opinionated Behavior
+
+In addition to setting defaults listed in the table above, the `message` is also enhanced to be:
 
 ```
-<icon> [${BUILD_TEAM_NAME}] ${BUILD_PIPELINE_NAME} / ${BUILD_JOB_NAME}#${BUILD_ID} >
-```
+[status] > [message]
+To watch this build in your terminal using fly <mac_icon> <windows_icon> <linux_icon>
+>_ fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME}
+>_ fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}  
+``` 
+where
+ 
+* `[status]` - A "status" line that contains individually hyperlinked components for: 
+   * concourse "propeller" **build status** icon matching the `message_type`
+   * the **team name** of the build
+   * **pipeline name** of the build
+   * build **job name** and number
+* `[message]` - The `message` (with `tokens` substituted).
+* A "hints" message on a newline templated for the build.
+   * The `<mac_icon>`, `<windows_icon>`, and `<linux_icon>` are hyperlinked for direct download from the ATC.
+ 
+#### Overriding Opinions
 
-where `<icon>` is the associated Concourse icon for the build status, hosted on your Concourse server
-at `${ATC_EXTERNAL_URL}/public/images/favicon-<message_type>.png`.  Additionally, each component will
-be individually hyperlinked to their respective ATC urls.
+You can override any of the opinions by specifying the parameter value yourself.  However, the "header" line will always
+appear when `message_type` is used, even if you supply your own `message`.
 
 ## Examples
 
@@ -96,33 +116,37 @@ be individually hyperlinked to their respective ATC urls.
   params:
     color: green
     from: "Concourse CI"
-    message:
-      template: "${PR-TITLE} Build Successful - <a href='${ATC_EXTERNAL_URL}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}'>Build Logs</a>"
-      params:
-        PR-TITLE: file://output-directory/pr-title
+    message: "${PR-TITLE} Build Successful - <a href='${ATC_EXTERNAL_URL}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}'>Build Logs</a>"
+    tokens:
+      PR-TITLE: file://output-directory/pr-title
 ```
 
-### Usage Opinionated Messages
+### Opinionated Messages
+
+A fully configured opinionated "success" message:
+```
+- put: hipchat-notification
+  params: {message_type: pr_succeeded}
+```
+
+Or, if you want to craft your own message with some files produced as part of your build, but still leverage the
+opinionated template for the rest: 
 
 ```
 - put: hipchat-notification
-  params: {message_type: succeeded}
+  params: 
+    message_type: pr_succeeded
+    message: "${PR-TITLE} Pull Request Successful"
+    tokens:
+      PR-TITLE: file://output-directory/pr-title
 ```
 
-You can still override any standard parameter to deviate from the above opinions.  If you provide a value for `message`
-or `message.template`, it will be appended to the opinionated prefix.  This means you can customize the message appearing after
-the opinionated prefix:
+## Development
 
-```
-message_type: pr_succeeded
-message:
-  template: "${PR-TITLE} Pull Request Successful"
-  params:
-    PR-TITLE: file://output-directory/pr-title
-```
+### Running the Tests
 
-will have an effective template value of:
-
+To run the mocha [tests](scripts/test):
 ```
-<icon> [${BUILD_TEAM_NAME}] ${BUILD_PIPELINE_NAME} / ${BUILD_JOB_NAME}#${BUILD_ID} > ${PR-TITLE} Pull Request Successful
+cd scripts
+npm test
 ```

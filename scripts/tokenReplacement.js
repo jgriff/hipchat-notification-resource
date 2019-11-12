@@ -17,14 +17,11 @@ var async = require('async'),
   url = require('url');
 
 module.exports = {
-  replaceTokens: function (message, rootDir, done) {
+  replaceTokens: function (message, userTokens, rootDir, done) {
 
-    if (typeof message === "string") {
+    if (!message || typeof message !== "string") {
+      console.error('message param must be a string');
       done(null, message);
-      return;
-    } else if (!message.template) {
-      console.error('message param must be a string or contain a template property');
-      process.exit(1);
     }
 
     var buildTokens = {
@@ -40,42 +37,40 @@ module.exports = {
     };
 
     for (var t in buildTokens) {
-      message.template = message.template.replaceAll(t, buildTokens[t]);
+      message = message.replaceAll(t, buildTokens[t]);
     }
 
-    if (!message.params || message.params.length === 0) {
-      done(null, message.template);
+    if (!userTokens || userTokens.length === 0) {
+      done(null, message);
       return;
     }
 
-    var tokenParams = {};
+    var processedUserTokens = {};
 
-    async.forEachOf(message.params,
+    async.forEachOf(userTokens,
       function iterator(item, key, iteratorCallback) {
         if (isFilePath(item)) {
           readFileContents(rootDir, item, function (err, result) {
             if (err) {
-              console.error(err);
-              process.exit(1);
+              console.error("Error reading file.", err)
+            } else {
+              processedUserTokens[key] = result;
             }
-            tokenParams[key] = result;
             iteratorCallback(null);
           });
         } else {
-          tokenParams[key] = item
+          processedUserTokens[key] = item;
           iteratorCallback(null);
         }
       },
       function complete(err) {
-        if (err) {
-          console.error(err);
-          process.exit(1);
-        }
-        for (var t in tokenParams) {
-          message.template = message.template.replaceAll('${' + t + '}', tokenParams[t]);
+        if (!err) {
+          for (var t in processedUserTokens) {
+            message = message.replaceAll('${' + t + '}', processedUserTokens[t]);
+          }
         }
 
-        done(null, message.template);
+        done(null, message);
       }
     );
   }
@@ -92,21 +87,20 @@ function isFilePath(value) {
 }
 
 function readFileContents(rootDir, filePath, done) {
-  var parsedUrl = url.parse(filePath),
-    pathName = rootDir + '/' + parsedUrl.hostname + parsedUrl.pathname;
+  var parsedUrl = url.parse(filePath);
+  var pathName = rootDir + '/' + parsedUrl.hostname + (parsedUrl.pathname.length > 1 ? parsedUrl.pathname : '');
+
   async.waterfall([
     function checkIfFileExists(callback) {
       fs.exists(pathName, function (exists) {
         if (exists) {
           return callback(null, pathName);
         }
-
-        console.error("file at path [" + pathName + "] does not exist");
-        process.exit(1);
+        return callback(new Error("file at path [" + pathName + "] does not exist"), pathName);
       });
     },
     function readFileText(filePath, callback) {
       return fs.readFile(filePath, 'utf8', callback)
     }
   ], done);
-};
+}

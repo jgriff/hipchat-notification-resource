@@ -41,7 +41,7 @@ function HipChatClient() {
     },
     {
       name: "from",
-      optional: false
+      optional: true
     },
     {
       name: "message",
@@ -75,7 +75,6 @@ HipChatClient.prototype.sendMessage = function (source, params, done) {
   var requestUrl = `${source.hipchat_server_url}/v2/room/${source.room_id}/notification?auth_token=${source.token}`,
     hipChatMessage = {
       room_id: source.room_id,
-      from: params.from,
       message: params.message
     },
     requestOptions = {
@@ -86,6 +85,10 @@ HipChatClient.prototype.sendMessage = function (source, params, done) {
 
   if (source.skip_ssl_verification) {
     requestOptions.agent = new https.Agent({ rejectUnauthorized: false })
+  }
+
+  if (params.from) {
+    hipChatMessage.from = params.from;
   }
 
   if (params.color) {

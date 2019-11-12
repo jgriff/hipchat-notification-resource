@@ -31,9 +31,8 @@ stdin.on('end', function () {
 
   var parsedData = JSON.parse(inputJSON.toString());
   opinions.injectOpinionatedDefaults(parsedData.params);
-  var message = parsedData.params.message;
 
-  tokenReplacer.replaceTokens(message, process.argv[2], function (error, newMessage) {
+  tokenReplacer.replaceTokens(parsedData.params.message, parsedData.params.tokens, process.argv[2], function (error, newMessage) {
     if (error) {
       console.error(error);
       process.exit(1);
