@@ -8,7 +8,7 @@ Send notification messages to HipChat using a string message or templated messag
 
 ## Usage
 
-```
+```yaml
 resource_types:
 - name: hipchat-notification
   type: docker-image
@@ -111,7 +111,7 @@ appear when `message_type` is used, even if you supply your own `message`.
 
 ### Write Your Own Template
 
-```
+```yaml
 - put: hipchat-notification
   params:
     color: green
@@ -124,7 +124,7 @@ appear when `message_type` is used, even if you supply your own `message`.
 ### Opinionated Messages
 
 A fully configured opinionated "success" message:
-```
+```yaml
 - put: hipchat-notification
   params: {message_type: pr_succeeded}
 ```
@@ -132,7 +132,7 @@ A fully configured opinionated "success" message:
 Or, if you want to craft your own message with some files produced as part of your build, but still leverage the
 opinionated template for the rest: 
 
-```
+```yaml
 - put: hipchat-notification
   params: 
     message_type: pr_succeeded
