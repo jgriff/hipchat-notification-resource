@@ -4,96 +4,96 @@ module.exports = {
       return;
     }
 
-    var messageHeaderSimple = headerSimple();
+    params.message = messageTypeDefaults(params.message_type, function (defaultColor, defaultNotify, defaultMessage) {
+      if (!params.color) {
+        params.color = defaultColor;
+      }
 
-    var defaultColor = "yellow";
-    var defaultNotify = false;
-    var defaultMessage = "";
+      if (!params.notify) {
+        params.notify = defaultNotify;
+      }
 
-    switch (params.message_type) {
-      case "pending":
-        defaultColor = "gray";
-        messageHeaderSimple = imgBuildStatus("pending") + messageHeaderSimple;
-        defaultMessage = "Build Pending";
-        break;
-      case "started":
-        defaultColor = "yellow";
-        messageHeaderSimple = imgBuildStatus("started") + messageHeaderSimple;
-        defaultMessage = "Build Started";
-        break;
-      case "succeeded":
-        defaultColor = "green";
-        messageHeaderSimple = imgBuildStatus("succeeded") + messageHeaderSimple;
-        defaultMessage = "Build Successful";
-        break;
-      case "failed":
-        defaultColor = "red";
-        defaultNotify = true;
-        messageHeaderSimple = imgBuildStatus("failed") + messageHeaderSimple;
-        defaultMessage = "Build Failed!";
-        break;
-      case "aborted":
-        defaultColor = "purple";
-        messageHeaderSimple = imgBuildStatus("aborted") + messageHeaderSimple;
-        defaultMessage = "Build Aborted";
-        break;
-      case "pr_pending":
-        defaultColor = "gray";
-        messageHeaderSimple = imgBuildStatus("pending") + messageHeaderSimple;
-        defaultMessage = "Pull Request Build Pending";
-        break;
-      case "pr_started":
-        defaultColor = "yellow";
-        messageHeaderSimple = imgBuildStatus("started") + messageHeaderSimple;
-        defaultMessage = "Pull Request Build Started";
-        break;
-      case "pr_succeeded":
-        defaultColor = "green";
-        messageHeaderSimple = imgBuildStatus("succeeded") + messageHeaderSimple;
-        defaultMessage = "Pull Request Build Successful";
-        break;
-      case "pr_failed":
-        defaultColor = "red";
-        defaultNotify = true;
-        messageHeaderSimple = imgBuildStatus("failed") + messageHeaderSimple;
-        defaultMessage = "Pull Request Build Failed!";
-        break;
-      case "pr_aborted":
-        defaultColor = "purple";
-        messageHeaderSimple = imgBuildStatus("aborted") + messageHeaderSimple;
-        defaultMessage = "Pull Request Build Aborted";
-        break;
-      default:
-        console.error("Unsupported value for 'message_type':", params.message_type);
-        return;
-    }
+      if (!isString(params.message)) {
+        params.message = defaultMessage;
+      }
 
-    if (!params.color) {
-      params.color = defaultColor;
-    }
-
-    if (!params.notify) {
-      params.notify = defaultNotify;
-    }
-
-    if (params.message && typeof params.message === "string") {
-      // if the user supplied their own message, use it
-      params.message = messageHeaderSimple + params.message + newline() + detailsSimple();
-    } else {
-      // otherwise, use our default message
-      params.message = messageHeaderSimple + defaultMessage + newline() + detailsSimple();;
-    }
+      // assemble the final message markup
+      return assembleMessageMarkup(params);
+    });
   }
 };
 
-function headerSimple() {
+function messageTypeDefaults(messageType, done) {
+  switch (messageType) {
+    case "pending":      return done("gray",   false, "Build Pending");
+    case "started":      return done("yellow", false, "Build Started");
+    case "succeeded":    return done("green",  false, "Build Successful");
+    case "failed":       return done("red",    true,  "Build Failed!");
+    case "aborted":      return done("purple", false, "Build Aborted");
+    case "pr_pending":   return done("gray",   false, "Pull Request Build Pending");
+    case "pr_started":   return done("yellow", false, "Pull Request Build Started");
+    case "pr_succeeded": return done("green",  false, "Pull Request Build Successful");
+    case "pr_failed":    return done("red",    true,  "Pull Request Build Failed!");
+    case "pr_aborted":   return done("purple", false, "Pull Request Build Aborted");
+    default:
+      console.error("Unsupported value for 'message_type':", messageType);
+      return done(null, null, null, null);
+  }
+}
+
+function assembleMessageMarkup(params) {
+  return propeller(params) + pipelineInfo(params) + params.message + flyInfo(params);
+}
+
+function propeller(params) {
+  var type = params.message_type;
+
+  // there are no "pr_" icons, so remove the 'pr_' prefix to use the same icon as the "normal" (ex: 'pr_succeeded' --> 'succeeded')
+  if (type.startsWith("pr_")) {
+    type = type.substring("pr_".length);
+  }
+
+  return imgConcoursePublic("favicon-" + type + ".png", 24);
+}
+
+function pipelineInfo(params) {
+  if (params.message_type_config && params.message_type_config.pipeline_info && isString(params.message_type_config.pipeline_info)) {
+    var customPipelineInfo = params.message_type_config.pipeline_info;
+    if (stringIs(customPipelineInfo, "enabled")) {
+      return defaultPipelineInfo();
+    } else if (stringIs(customPipelineInfo, "disabled")) {
+      return '';
+    } else {
+      return customPipelineInfo;
+    }
+  }
+
+  return defaultPipelineInfo();
+}
+
+function defaultPipelineInfo() {
   return  imgConcoursePublic("baseline-people-24px.svg", 16) + href(bold("${BUILD_TEAM_NAME}"), urlToTeam()) + space(2) +
           imgConcoursePublic("ic-breadcrumb-pipeline.svg", 16) + href(bold("${BUILD_PIPELINE_NAME}"), urlToPipeline()) + space(2) +
           imgConcoursePublic("ic-breadcrumb-job.svg", 16) + href(bold("${BUILD_JOB_NAME} #${BUILD_NAME}"), urlToJob()) +
           imgConcoursePublic("baseline-keyboard-arrow-right-24px.svg", 16);
 }
 
-function detailsSimple() {
+function flyInfo(params) {
+  if (params.message_type_config && params.message_type_config.fly_info && isString(params.message_type_config.fly_info)) {
+    var customFlyInfo = params.message_type_config.fly_info;
+    if (stringIs(customFlyInfo, "enabled")) {
+      return newline() + defaultFlyInfo();
+    } else if (stringIs(customFlyInfo, "disabled")) {
+      return '';
+    } else {
+      return newline() + customFlyInfo;
+    }
+  }
+
+  return newline() + defaultFlyInfo();
+}
+
+function defaultFlyInfo() {
   return emphasis("To watch this build in your terminal using") + space(1) + code(bold("fly")) + space(2) +
          href(imgConcoursePublic("apple-logo-grey-ic.svg", 16), urlToFlyDownloadMac()) +
          href(imgConcoursePublic("windows-logo-grey-ic.svg", 16), urlToFlyDownloadWindows()) +
@@ -101,6 +101,10 @@ function detailsSimple() {
          imgConcoursePublic("ic-terminal.svg", 16) + space(1) + code("fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME} --insecure") + newline() +
          imgConcoursePublic("ic-terminal.svg", 16) + space(1) + code("fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}");
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// support functions
+// ---------------------------------------------------------------------------------------------------------------------
 
 function newline() {
   return '<br>';
@@ -154,10 +158,17 @@ function urlToFlyDownload(arch, platform) {
   return '${ATC_EXTERNAL_URL}/api/v1/cli?arch=' + arch + '&platform=' + platform;
 }
 
-function imgBuildStatus(status) {
-  return imgConcoursePublic("favicon-" + status + ".png", 24);
-}
-
 function imgConcoursePublic(name, size) {
   return '<img src="${ATC_EXTERNAL_URL}/public/images/' + name + '" alt="" width="' + size + '" height="' + size + '">';
+}
+
+function stringIs(toTest, expectedVal) {
+  if (isString(toTest) && isString(expectedVal)) {
+    return toTest.toLowerCase() === expectedVal.toLowerCase();
+  }
+  return false;
+}
+
+function isString(toTest) {
+  return toTest && typeof toTest === "string";
 }

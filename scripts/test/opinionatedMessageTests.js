@@ -78,7 +78,7 @@ describe('Opinionated Messages', function () {
       color: "gray",
       notify: false
     }).and.to.have.property('message')
-      .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('pending', 'Build Pending'));
+      .that.equals(expected_message_markup('pending', 'Build Pending'));
   });
 
   it("'started' defaults", function () {
@@ -90,7 +90,7 @@ describe('Opinionated Messages', function () {
       color: "yellow",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('started', 'Build Started'));
+        .that.equals(expected_message_markup('started', 'Build Started'));
   });
 
   it("'succeeded' defaults", function () {
@@ -102,7 +102,7 @@ describe('Opinionated Messages', function () {
       color: "green",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('succeeded', 'Build Successful'));
+        .that.equals(expected_message_markup('succeeded', 'Build Successful'));
   });
 
   it("'failed' defaults", function () {
@@ -114,7 +114,7 @@ describe('Opinionated Messages', function () {
       color: "red",
       notify: true,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('failed', 'Build Failed!'));
+        .that.equals(expected_message_markup('failed', 'Build Failed!'));
   });
 
   it("'aborted' defaults", function () {
@@ -126,7 +126,7 @@ describe('Opinionated Messages', function () {
       color: "purple",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('aborted', 'Build Aborted'));
+        .that.equals(expected_message_markup('aborted', 'Build Aborted'));
   });
 
   it("'pr_pending' defaults", function () {
@@ -138,7 +138,7 @@ describe('Opinionated Messages', function () {
       color: "gray",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('pending', 'Pull Request Build Pending'));
+        .that.equals(expected_message_markup('pending', 'Pull Request Build Pending'));
   });
 
   it("'pr_started' defaults", function () {
@@ -150,7 +150,7 @@ describe('Opinionated Messages', function () {
       color: "yellow",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('started', 'Pull Request Build Started'));
+        .that.equals(expected_message_markup('started', 'Pull Request Build Started'));
   });
 
   it("'pr_succeeded' defaults", function () {
@@ -162,7 +162,7 @@ describe('Opinionated Messages', function () {
       color: "green",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('succeeded', 'Pull Request Build Successful'));
+        .that.equals(expected_message_markup('succeeded', 'Pull Request Build Successful'));
   });
 
   it("'pr_failed' defaults", function () {
@@ -174,7 +174,7 @@ describe('Opinionated Messages', function () {
       color: "red",
       notify: true,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('failed', 'Pull Request Build Failed!'));
+        .that.equals(expected_message_markup('failed', 'Pull Request Build Failed!'));
   });
 
   it("'pr_aborted' defaults", function () {
@@ -186,49 +186,226 @@ describe('Opinionated Messages', function () {
       color: "purple",
       notify: false,
     }).and.to.have.property('message')
-        .that.equals(EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR('aborted', 'Pull Request Build Aborted'));
+        .that.equals(expected_message_markup('aborted', 'Pull Request Build Aborted'));
+  });
+
+  // -------------------------------------------------------------------------------------------------------------------
+  // custom configuration tests
+  // -------------------------------------------------------------------------------------------------------------------
+
+  it("should use default pipeline markup when 'message_type_config.pipeline_info=enabled'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        pipeline_info: "enabled"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending'));
+  });
+
+  it("should use default pipeline markup when 'message_type_config.pipeline_info=ENABLED'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        pipeline_info: "ENABLED"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending'));
+  });
+
+  it("should omit pipeline markup when 'message_type_config.pipeline_info=disabled'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        pipeline_info: "disabled"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', ''));
+  });
+
+  it("should omit pipeline markup when 'message_type_config.pipeline_info=DISABLED'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        pipeline_info: "DISABLED"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', ''));
+  });
+
+  it("should use pipeline text verbatim when 'message_type_config.pipeline_info' has any other value", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        pipeline_info: "some other pipeline info"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', 'some other pipeline info'));
+  });
+
+  it("should use default fly markup when 'message_type_config.fly_info=enabled'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        fly_info: "enabled"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending'));
+  });
+
+  it("should use default fly markup when 'message_type_config.fly_info=ENABLED'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        fly_info: "ENABLED"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending'));
+  });
+
+  it("should omit fly markup when 'message_type_config.fly_info=disabled'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        fly_info: "disabled"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', DEFAULT_PIPELINE_INFO, ''));
+  });
+
+  it("should omit fly markup when 'message_type_config.fly_info=DISABLED'", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        fly_info: "DISABLED"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', DEFAULT_PIPELINE_INFO, ''));
+  });
+
+  it("should use fly text verbatim when 'message_type_config.fly_info' has any other value", function () {
+    var params = {
+      message_type: "pending",
+      message_type_config: {
+        fly_info: "some other fly info"
+      }
+    };
+
+    sut.injectOpinionatedDefaults(params);
+
+    expect(params).to.include({
+      color: "gray",
+      notify: false
+    }).and.to.have.property('message')
+      .that.equals(expected_message_markup('pending', 'Build Pending', DEFAULT_PIPELINE_INFO, NEWLINE + 'some other fly info'));
   });
 });
 
 const SPACE = '&nbsp;';
 const SPACE_DOUBLE = SPACE + SPACE;
 const NEWLINE = '<br>';
-const EXPECTED_PEOPLE_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/baseline-people-24px.svg" alt="" width="16" height="16">';
-const EXPECTED_TEAM_LINK = '<a href="${ATC_EXTERNAL_URL}/?search=team: ${BUILD_TEAM_NAME}"><b>${BUILD_TEAM_NAME}</b></a>';
-const EXPECTED_PIPELINE_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-breadcrumb-pipeline.svg" alt="" width="16" height="16">';
-const EXPECTED_PIPELINE_LINK = '<a href="${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}"><b>${BUILD_PIPELINE_NAME}</b></a>';
-const EXPECTED_JOB_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-breadcrumb-job.svg" alt="" width="16" height="16">';
-const EXPECTED_JOB_LINK = '<a href="${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"><b>${BUILD_JOB_NAME} #${BUILD_NAME}</b></a>';
-const EXPECTED_RIGHT_ARROW_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/baseline-keyboard-arrow-right-24px.svg" alt="" width="16" height="16">';
-const EXPECTED_TERMINAL_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-terminal.svg" alt="" width="16" height="16">';
 
-const EXPECTED_HEADER_SIMPLE = EXPECTED_PEOPLE_ICON + EXPECTED_TEAM_LINK + SPACE_DOUBLE +
-                               EXPECTED_PIPELINE_ICON + EXPECTED_PIPELINE_LINK + SPACE_DOUBLE +
-                               EXPECTED_JOB_ICON + EXPECTED_JOB_LINK +
-                               EXPECTED_RIGHT_ARROW_ICON;
+const PIPELINE_INFO_PEOPLE_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/baseline-people-24px.svg" alt="" width="16" height="16">';
+const PIPELINE_INFO_TEAM_LINK = '<a href="${ATC_EXTERNAL_URL}/?search=team: ${BUILD_TEAM_NAME}"><b>${BUILD_TEAM_NAME}</b></a>';
+const PIPELINE_INFO_PIPELINE_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-breadcrumb-pipeline.svg" alt="" width="16" height="16">';
+const PIPELINE_INFO_PIPELINE_LINK = '<a href="${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}"><b>${BUILD_PIPELINE_NAME}</b></a>';
+const PIPELINE_INFO_JOB_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-breadcrumb-job.svg" alt="" width="16" height="16">';
+const PIPELINE_INFO_JOB_LINK = '<a href="${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"><b>${BUILD_JOB_NAME} #${BUILD_NAME}</b></a>';
+const PIPELINE_INFO_RIGHT_ARROW_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/baseline-keyboard-arrow-right-24px.svg" alt="" width="16" height="16">';
 
-const EXPECTED_DETAILS_MESSAGE = '<i>To watch this build in your terminal using</i>&nbsp;<code><b>fly</b></code>';
-const EXPECTED_DETAILS_FLY_DL_MAC = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=darwin"><img src="${ATC_EXTERNAL_URL}/public/images/apple-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
-const EXPECTED_DETAILS_FLY_DL_WINDOWS = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=windows"><img src="${ATC_EXTERNAL_URL}/public/images/windows-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
-const EXPECTED_DETAILS_FLY_DL_LINUX = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=linux"><img src="${ATC_EXTERNAL_URL}/public/images/linxus-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
-const EXPECTED_DETAILS_FLY_LOGIN = '<code>fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME} --insecure</code>';
-const EXPECTED_DETAILS_FLY_WATCH = '<code>fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}</code>';
+const DEFAULT_PIPELINE_INFO = PIPELINE_INFO_PEOPLE_ICON + PIPELINE_INFO_TEAM_LINK + SPACE_DOUBLE +
+                               PIPELINE_INFO_PIPELINE_ICON + PIPELINE_INFO_PIPELINE_LINK + SPACE_DOUBLE +
+                               PIPELINE_INFO_JOB_ICON + PIPELINE_INFO_JOB_LINK +
+                               PIPELINE_INFO_RIGHT_ARROW_ICON;
 
-const EXPECTED_DETAILS_SIMPLE = EXPECTED_DETAILS_MESSAGE + SPACE_DOUBLE +
-                                EXPECTED_DETAILS_FLY_DL_MAC +
-                                EXPECTED_DETAILS_FLY_DL_WINDOWS +
-                                EXPECTED_DETAILS_FLY_DL_LINUX + NEWLINE +
-                                EXPECTED_TERMINAL_ICON + SPACE + EXPECTED_DETAILS_FLY_LOGIN + NEWLINE +
-                                EXPECTED_TERMINAL_ICON + SPACE + EXPECTED_DETAILS_FLY_WATCH;
+const FLY_INFO_MESSAGE = '<i>To watch this build in your terminal using</i>&nbsp;<code><b>fly</b></code>';
+const FLY_INFO_DL_MAC = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=darwin"><img src="${ATC_EXTERNAL_URL}/public/images/apple-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
+const FLY_INFO_DL_WINDOWS = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=windows"><img src="${ATC_EXTERNAL_URL}/public/images/windows-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
+const FLY_INFO_DL_LINUX = '<a href="${ATC_EXTERNAL_URL}/api/v1/cli?arch=amd64&platform=linux"><img src="${ATC_EXTERNAL_URL}/public/images/linxus-logo-grey-ic.svg" alt="" width="16" height="16"></a>';
+const FLY_INFO_LOGIN = '<code>fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME} --insecure</code>';
+const FLY_INFO_WATCH = '<code>fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}</code>';
+const FLY_INFO_TERMINAL_ICON = '<img src="${ATC_EXTERNAL_URL}/public/images/ic-terminal.svg" alt="" width="16" height="16">';
+
+const DEFAULT_FLY_INFO = FLY_INFO_MESSAGE + SPACE_DOUBLE +
+                                FLY_INFO_DL_MAC +
+                                FLY_INFO_DL_WINDOWS +
+                                FLY_INFO_DL_LINUX + NEWLINE +
+                                FLY_INFO_TERMINAL_ICON + SPACE + FLY_INFO_LOGIN + NEWLINE +
+                                FLY_INFO_TERMINAL_ICON + SPACE + FLY_INFO_WATCH;
 
 /**
- * This is the expected value for our "opinionated" 'message'.
+ * Formulates the expected final markup for our "opinionated" 'message'.
  *
  * @param favicon The icon that gets rendered first on the line, directly associated with the 'message_type'.
  * @param message The message that will be rendered with our opinionated markup (either user-defined or our default).
+ * @param pipeline_info (optional) custom rendering for the pipeline_info segment (defaults to our expected default rendering).
+ * @param fly_info (optional) custom rendering for the fly_info segment (defaults to our expected default rendering).
  * @returns {string} An html string concatenation of the original 'message' (or our default) marked up with our opinionated dressing.
  */
-function EXPECTED_MESSAGE_MARKUP_SIMPLE_FOR(favicon, message) {
+function expected_message_markup(favicon, message, pipeline_info = DEFAULT_PIPELINE_INFO, fly_info = (NEWLINE + DEFAULT_FLY_INFO)) {
   return '<img src="${ATC_EXTERNAL_URL}/public/images/favicon-' + favicon + '.png" alt="" width="24" height="24">' +
-        EXPECTED_HEADER_SIMPLE + message + NEWLINE + EXPECTED_DETAILS_SIMPLE;
+        pipeline_info + message + fly_info;
 }
