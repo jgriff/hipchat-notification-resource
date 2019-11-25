@@ -10,10 +10,10 @@ Send notification messages to HipChat using a string message or templated messag
 
 ```yaml
 resource_types:
-- name: hipchat-notification
-  type: docker-image
-  source:
-    repository: jgriff/hipchat-notification-resource
+  - name: hipchat-notification
+    type: docker-image
+    source:
+      repository: jgriff/hipchat-notification-resource
 
 resources:
   - name: hipchat
@@ -81,31 +81,64 @@ Choose from one of the following values for `message_type` to get the associated
 | `"pr_failed"`    | `"red"`         | `true`           | "Pull Request Build Failed!"    |
 | `"pr_aborted"`   | `"purple"`      | `false`          | "Pull Request Build Aborted"    |
 
+You can override any of the defaults (in the table above) by specifying the parameter value yourself.  
+
+For example, to turn on notifications for `succeeded` messages:
+
+```yaml 
+- put: hipchat
+  params: 
+    message_type: succeeded
+    notify: true
+```
+
 #### Opinionated Behavior
 
 In addition to setting defaults listed in the table above, the `message` is also enhanced to be:
 
 ```
-[status] > [message]
-To watch this build in your terminal using fly <mac_icon> <windows_icon> <linux_icon>
->_ fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME}
->_ fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}  
+[propeller] [pipeline_info] > [message]
+[fly_info]  
 ``` 
-where
- 
-* `[status]` - A "status" line that contains individually hyperlinked components for: 
-   * concourse "propeller" **build status** icon matching the `message_type`
+
+where:
+* `[propeller]` - The Concourse "propeller" **build status** icon matching the `message_type`. 
+* `[pipeline_info]` - A "status" line that contains individually hyperlinked components for: 
    * the **team name** of the build
    * **pipeline name** of the build
    * build **job name** and number
-* `[message]` - The `message` (with `tokens` substituted).
-* A "hints" message on a newline templated for the build.
-   * The `<mac_icon>`, `<windows_icon>`, and `<linux_icon>` are hyperlinked for direct download from the ATC.
+* `[message]` - The value of the `message` param (with `tokens` substituted).
+* `[fly_info]` - A message providing hints for watching the build with `fly`.  
+    ``` 
+    To watch this build in your terminal using fly <mac_icon> <windows_icon> <linux_icon>
+    >_ fly -t ${BUILD_TEAM_NAME} login ${ATC_EXTERNAL_URL} -n ${BUILD_TEAM_NAME}
+    >_ fly -t ${BUILD_TEAM_NAME} watch -b ${BUILD_ID}
+    ```
+   * The `<mac_icon>`, `<windows_icon>`, and `<linux_icon>` are hyperlinked for direct download of `fly` from the ATC.
  
-#### Overriding Opinions
+#### Configuring the Opinionated Message
 
-You can override any of the opinions by specifying the parameter value yourself.  However, the "header" line will always
-appear when `message_type` is used, even if you supply your own `message`.
+You can also tweak the individual components of the opinionated message type under a `message_type_config` param, 
+which can contain:
+
+* `pipeline_info`: *Optional.* Choice of:
+  * `enabled` - show the default text for the `[pipeline_info]` segment (default).
+  * `disabled` - omit the `[pipeline_info]` segment from the message.
+  * custom text - any other text value will be used in place for the `[pipeline_info]` segment.
+* `fly_info`: *Optional.* Choice of:
+  * `enabled` - show the default text for the `[fly_info]` segment (default).
+  * `disabled` - omit the `[fly_info]` segment from the message.
+  * custom text - any other text value will be used in place for the `[fly_info]` segment.
+
+```yaml 
+- put: hipchat
+  params: 
+    message_type: succeeded
+    message_type_config:
+      pipeline_info: [enabled | disabled | <custom text to display>] (default is 'enabled')
+      fly_info: [enabled | disabled | <custom text to display>] (default is 'enabled')
+``` 
+
 
 ## Examples
 
@@ -123,13 +156,16 @@ appear when `message_type` is used, even if you supply your own `message`.
 
 ### Opinionated Messages
 
-A fully configured opinionated "success" message:
+#### Fully Opinionated
+A fully configured opinionated "success" message for pull requests:
+
 ```yaml
 - put: hipchat-notification
   params: {message_type: pr_succeeded}
 ```
 
-Or, if you want to craft your own message with some files produced as part of your build, but still leverage the
+#### Custom Message
+If you want to craft your own message with some files produced as part of your build, but still leverage the
 opinionated template for the rest: 
 
 ```yaml
@@ -139,6 +175,48 @@ opinionated template for the rest:
     message: "${PR-TITLE} Pull Request Successful"
     tokens:
       PR-TITLE: file://output-directory/pr-title
+```
+
+#### Custom Pipeline Status Info
+
+To change the pipeline status line to simply display the build number instead:
+
+```yaml
+- put: hipchat-notification
+  params: 
+    message_type: pr_succeeded
+    message_type_config:
+      pipeline_info: "Build #${BUILD_ID}"
+```
+
+Or to **disable** the segment all together:
+
+```yaml
+- put: hipchat-notification
+  params: 
+    message_type: pr_succeeded
+    message_type_config:
+      pipeline_info: disabled
+```
+
+#### Custom Fly Info
+
+```yaml
+- put: hipchat-notification
+  params: 
+    message_type: pr_succeeded
+    message_type_config:
+      fly_info: "Say this about fly instead"
+```
+
+Or to **disable** the segment all together:
+
+```yaml
+- put: hipchat-notification
+  params: 
+    message_type: pr_succeeded
+    message_type_config:
+      fly_info: disabled
 ```
 
 ## Development

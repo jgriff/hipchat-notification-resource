@@ -38,6 +38,7 @@ stdin.on('end', function () {
       process.exit(1);
     }
     parsedData.params.message = newMessage;
+
     new HipChatClient().run(parsedData.source, parsedData.params);
   });
 });
