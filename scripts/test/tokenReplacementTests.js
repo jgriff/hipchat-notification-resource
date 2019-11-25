@@ -228,14 +228,68 @@ describe('Token replacements', function (done) {
     return doTokenReplacement(params.message, params.tokens, buildTokens, files)
       .then(newMessage => newMessage.should.match(/https:\/\/ci\.acme\.com/));
   });
+
+  it("should support customizing token values via interceptor", function () {
+    let userTokens = {
+      MY_TOKEN: 'with a lower case value'
+    };
+
+    let buildTokens = {
+      BUILD_JOB_NAME: 'Super-Job'
+    };
+
+    let files = null;
+
+    return doTokenReplacement("${BUILD_JOB_NAME} ${MY_TOKEN}", userTokens, buildTokens, files,
+        function interceptor(key, value, accept) {
+          accept(key, value.toUpperCase())
+        })
+      .then(newMessage => newMessage.should.equal("SUPER-JOB WITH A LOWER CASE VALUE"));
+  });
+
+  it("should support omitting token values via interceptor", function () {
+    let userTokens = {
+      MY_TOKEN: 'with a lower case value',
+      BAD_TOKEN: 'should be left out'
+    };
+
+    let buildTokens = {
+      BUILD_JOB_NAME: 'Super-Job'
+    };
+
+    let files = null;
+
+    return doTokenReplacement("${BUILD_JOB_NAME} ${BAD_TOKEN}${MY_TOKEN}", userTokens, buildTokens, files,
+        function interceptor(key, value, accept, reject) {
+          if (key === "BAD_TOKEN") {
+            reject(key);
+          } else {
+            accept(key, value.toUpperCase());
+          }
+        })
+      .then(newMessage => newMessage.should.equal("SUPER-JOB WITH A LOWER CASE VALUE"));
+  });
+
+  it("should truncate the ${GIT_COMMIT_MESSAGE} at the first line break (include only the summary statement)", function () {
+    let userTokens = {
+      GIT_COMMIT_MESSAGE: 'This is the summary statement for the commit message\n\nWhich has lots more content on additional lines.'
+    };
+
+    let buildTokens = null;
+
+    let files = null;
+
+    return doTokenReplacement("${GIT_COMMIT_MESSAGE}", userTokens, buildTokens, files)
+      .then(newMessage => newMessage.should.equal("This is the summary statement for the commit message"));
+  });
 });
 
-function doTokenReplacement(message, userTokens, buildTokens, files) {
+function doTokenReplacement(message, userTokens, buildTokens, files, tokenInterceptor) {
   function invokeSut(message, userTokens, rootDir) {
     return new Promise(function (resolve, reject) {
       sut.replaceTokens(message, userTokens, rootDir, function (error, newMessage) {
         resolve(newMessage);
-      });
+      }, tokenInterceptor);
     });
   }
 

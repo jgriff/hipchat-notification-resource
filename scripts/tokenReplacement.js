@@ -14,31 +14,34 @@
 
 var async = require('async'),
   fs = require('fs'),
-  url = require('url');
+  url = require('url'),
+  tokenInterceptors = require('./tokenInterceptors');
 
 module.exports = {
-  replaceTokens: function (message, userTokens, rootDir, done) {
+  replaceTokens: function (message, userTokens, rootDir, done, tokenInterceptor) {
 
     if (!message || typeof message !== "string") {
       console.error('message param must be a string');
       done(null, message);
     }
 
+    if (!tokenInterceptor) {
+      tokenInterceptor = tokenInterceptors.truncatingInterceptor
+    }
+
     var buildTokens = {
-      "${BUILD_ID}": process.env.BUILD_ID,
-      "${BUILD_NAME}": process.env.BUILD_NAME,
-      "${BUILD_TEAM_ID}": process.env.BUILD_TEAM_ID,
-      "${BUILD_TEAM_NAME}": process.env.BUILD_TEAM_NAME,
-      "${BUILD_JOB_ID}": process.env.BUILD_JOB_ID,
-      "${BUILD_JOB_NAME}": process.env.BUILD_JOB_NAME,
-      "${BUILD_PIPELINE_ID}": process.env.BUILD_PIPELINE_ID,
-      "${BUILD_PIPELINE_NAME}": process.env.BUILD_PIPELINE_NAME,
-      "${ATC_EXTERNAL_URL}": process.env.ATC_EXTERNAL_URL
+      "BUILD_ID": process.env.BUILD_ID,
+      "BUILD_NAME": process.env.BUILD_NAME,
+      "BUILD_TEAM_ID": process.env.BUILD_TEAM_ID,
+      "BUILD_TEAM_NAME": process.env.BUILD_TEAM_NAME,
+      "BUILD_JOB_ID": process.env.BUILD_JOB_ID,
+      "BUILD_JOB_NAME": process.env.BUILD_JOB_NAME,
+      "BUILD_PIPELINE_ID": process.env.BUILD_PIPELINE_ID,
+      "BUILD_PIPELINE_NAME": process.env.BUILD_PIPELINE_NAME,
+      "ATC_EXTERNAL_URL": process.env.ATC_EXTERNAL_URL
     };
 
-    for (var t in buildTokens) {
-      message = message.replaceAll(t, buildTokens[t]);
-    }
+    message = replaceTokensInMessage(buildTokens, message, tokenInterceptor);
 
     if (!userTokens || userTokens.length === 0) {
       done(null, message);
@@ -65,9 +68,7 @@ module.exports = {
       },
       function complete(err) {
         if (!err) {
-          for (var t in processedUserTokens) {
-            message = message.replaceAll('${' + t + '}', processedUserTokens[t]);
-          }
+          message = replaceTokensInMessage(processedUserTokens, message, tokenInterceptor);
         }
 
         done(null, message);
@@ -103,4 +104,26 @@ function readFileContents(rootDir, filePath, done) {
       return fs.readFile(filePath, 'utf8', callback)
     }
   ], done);
+}
+
+function replaceTokensInMessage(tokens, message, interceptor) {
+  for (var t in tokens) {
+    var value = tokens[t];
+    if (interceptor) {
+      try {
+        interceptor(t, value,
+          function accept(k, v) {
+            message = message.replaceAll('${' + k + '}', v);
+          }, function reject(k) {
+            message = message.replaceAll('${' + k + '}', '');
+          })
+      } catch (e) {
+        // interceptor bombed out, replace token "as is"
+        message = message.replaceAll('${' + t + '}', tokens[t]);
+      }
+    } else {
+      message = message.replaceAll('${' + t + '}', tokens[t]);
+    }
+  }
+  return message;
 }
