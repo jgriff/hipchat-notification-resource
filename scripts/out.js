@@ -27,12 +27,13 @@ stdin.on('data', function (chunk) {
 });
 
 stdin.on('end', function () {
+  var rootDir = process.argv[2];
   var inputJSON = inputChunks.join("");
 
   var parsedData = JSON.parse(inputJSON.toString());
-  opinions.injectOpinionatedDefaults(parsedData.params);
+  opinions.injectOpinionatedDefaults(parsedData.params, rootDir);
 
-  tokenReplacer.replaceTokens(parsedData.params.message, parsedData.params.tokens, process.argv[2], function (error, newMessage) {
+  tokenReplacer.replaceTokens(parsedData.params.message, parsedData.params.tokens, rootDir, function (error, newMessage) {
     if (error) {
       console.error(error);
       process.exit(1);

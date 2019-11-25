@@ -15,8 +15,8 @@
 var should = require('should'),
   sinon = require('sinon'),
   rewire = require('rewire'),
-  path = require('path'),
   os = require('os'),
+  uuid = require('uuid/v4'),
   fsify = require('fsify')({
     cwd: os.tmpdir(),
     persistent: false,
@@ -221,12 +221,12 @@ describe('Token replacements', function (done) {
       BUILD_JOB_NAME: 'dummy',
       BUILD_PIPELINE_ID: '200',
       BUILD_PIPELINE_NAME: 'test',
-      ATC_EXTERNAL_URL: 'https://ci.northropgrumman.com'
+      ATC_EXTERNAL_URL: 'https://ci.acme.com'
     };
     let files = null;
 
     return doTokenReplacement(params.message, params.tokens, buildTokens, files)
-      .then(newMessage => newMessage.should.match(/https:\/\/ci\.northropgrumman\.com/));
+      .then(newMessage => newMessage.should.match(/https:\/\/ci\.acme\.com/));
   });
 });
 
@@ -244,11 +244,28 @@ function doTokenReplacement(message, userTokens, buildTokens, files) {
   }
 
   if (files) {
-    return fsify(files).then((files) => {
-      const rootDir = path.dirname(files[0].name);
+    return fsify(inRandomDir(files)).then((files) => {
+      const rootDir = files[0].name;
       return invokeSut(message, userTokens, rootDir);
     });
   } else {
     return invokeSut(message, userTokens, null);
   }
+}
+
+/**
+ * Wraps a fsify directory structure object in an outer directory whose name is random.  This helps to isolate tests
+ * in their own directories (under the system temp dir).
+ *
+ * @param fsifyStructure the directory structure to wrap
+ * @returns {{contents: *, name: string, type: *}[]}
+ */
+function inRandomDir(fsifyStructure) {
+    return [
+      {
+        type: fsify.DIRECTORY,
+        name: uuid(),
+        contents: fsifyStructure
+      }
+    ];
 }
