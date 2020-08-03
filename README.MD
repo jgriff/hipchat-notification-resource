@@ -1,5 +1,7 @@
 # HipChat Notification Resource
 
+![pulls](https://img.shields.io/docker/pulls/jgriff/hipchat-notification-resource)
+
 Send notification messages to HipChat using a string message or templated message.
 
 * `check`: no-op
